@@ -487,15 +487,6 @@
   </div>
 
   <script>
-    const FIELD_ORDER = [
-      { key: 'title', label: '评分点' },
-      { key: 'type', label: '类型' },
-      { key: 'weight', label: '得分' },
-      { key: 'source', label: '来源' },
-      { key: 'reference', label: '引用' },
-      { key: 'description', label: '说明' },
-    ];
-
     const fileSelect = document.getElementById('file-select');
     const searchInput = document.getElementById('search-input');
     const copyAllFieldsBtn = document.getElementById('copy-all-fields-btn');
@@ -539,22 +530,29 @@
     }
 
     function getFieldValue(item, key) {
-      return String(item?.[key] ?? '');
+      if (!item) return '';
+      if (item.raw && Object.prototype.hasOwnProperty.call(item.raw, key)) {
+        return String(item.raw[key] ?? '');
+      }
+      const field = (item.fields || []).find(entry => entry.key === key);
+      return field ? String(field.value ?? '') : '';
     }
 
     function visibleFields(item) {
-      return FIELD_ORDER.filter(field => getFieldValue(item, field.key).trim() !== '');
+      return (item?.fields || []).filter(field => String(field.value || '').trim() !== '');
     }
 
     function combinedBlock(item) {
       return visibleFields(item)
-        .map(field => `${field.label}：${getFieldValue(item, field.key)}`)
+        .map(field => `${field.label || field.key}：${field.value}`)
         .join('\n\n');
     }
 
     function setActiveRubric(index, fieldIndex = 0) {
+      const item = rubricItems[index];
+      const fieldCount = item ? visibleFields(item).length : 0;
       activeRubricIndex = index;
-      activeFieldIndex = Math.max(0, Math.min(fieldIndex, FIELD_ORDER.length - 1));
+      activeFieldIndex = Math.max(0, Math.min(fieldIndex, Math.max(fieldCount - 1, 0)));
       renderList();
       renderWorkflow();
     }
@@ -565,7 +563,12 @@
         .map((item, index) => ({ item, index }))
         .filter(({ item }) => {
           if (!keyword) return true;
-          return [item.index, item.title, item.type, item.description, item.source]
+          return [
+            item.index,
+            item.displayTitle,
+            item.badge,
+            ...visibleFields(item).map(field => `${field.label} ${field.value}`),
+          ]
             .join(' ')
             .toLowerCase()
             .includes(keyword);
@@ -583,12 +586,12 @@
         <article class="item ${index === activeRubricIndex ? 'active' : ''}">
           <div class="item-top">
             <span class="tag ${index === activeRubricIndex ? 'active-tag' : ''}">NO. ${escapeHtml(item.index)}</span>
-            ${getFieldValue(item, 'type').trim() ? `<span class="tag">${escapeHtml(item.type)}</span>` : ''}
+            ${String(item.badge || '').trim() ? `<span class="tag">${escapeHtml(item.badge)}</span>` : ''}
           </div>
-          <h3>${escapeHtml(item.title || '未填写评分点')}</h3>
+          <h3>${escapeHtml(item.displayTitle || `Record ${item.index}`)}</h3>
           <div class="meta">
-            ${getFieldValue(item, 'weight').trim() ? `<div>得分：${escapeHtml(item.weight)}</div>` : ''}
-            <div>${item.isDeductionPoints === 'TRUE' ? '扣分项' : '正常项'}</div>
+            ${['weight', 'score', 'points'].map(key => getFieldValue(item, key)).find(Boolean) ? `<div>分值：${escapeHtml(['weight', 'score', 'points'].map(key => getFieldValue(item, key)).find(Boolean))}</div>` : ''}
+            <div>${getFieldValue(item, 'isDeductionPoints') === 'TRUE' ? '扣分项' : '正常项'}</div>
           </div>
           <div class="item-actions">
             <button data-open-index="${index}">打开字段填写</button>
@@ -706,11 +709,14 @@
         activeFieldIndex = fieldsToRender.length - 1;
       }
       const currentField = fieldsToRender[activeFieldIndex];
+      const summaryLead = ['title', 'name', 'prompt', 'question'].map(key => getFieldValue(item, key)).find(value => value.trim());
+      const summaryTail = ['description', 'summary', 'notes'].map(key => getFieldValue(item, key)).find(value => value.trim());
+      const summaryParts = [summaryLead, summaryTail].filter(part => part && part.trim());
       workflowEl.innerHTML = `
         <div class="workflow-header">
           <div>
-            <h3 class="workflow-title">NO. ${escapeHtml(item.index)}：${escapeHtml(item.title || '未填写评分点')}</h3>
-            <p class="workflow-sub">建议操作顺序和表单一致：先填评分点，再填类型、得分、来源、引用、说明。你可以只复制当前字段，也可以一路“复制并前进”。</p>
+            <h3 class="workflow-title">NO. ${escapeHtml(item.index)}：${escapeHtml(item.displayTitle || `Record ${item.index}`)}</h3>
+            <p class="workflow-sub">字段顺序会按当前 JSON 记录的结构自动生成。你可以只复制当前字段，也可以一路“复制并前进”做快速录入。</p>
           </div>
           <div class="progress-pill">当前字段：${escapeHtml(currentField.label)}（${activeFieldIndex + 1}/${fieldsToRender.length}）</div>
         </div>
@@ -751,7 +757,7 @@
 
         <div class="full-copy">
           <button class="secondary" id="copy-whole-rubric-btn">复制整条字段包</button>
-          <button class="ghost" id="copy-title-and-desc-btn">只复制评分点 + 说明</button>
+          ${summaryParts.length ? '<button class="ghost" id="copy-title-and-desc-btn">复制常用摘要</button>' : ''}
         </div>
       `;
 
@@ -762,12 +768,12 @@
       document.getElementById('copy-current-btn').addEventListener('click', () => copyField(activeFieldIndex, false));
       document.getElementById('copy-advance-btn').addEventListener('click', () => copyField(activeFieldIndex, true));
       document.getElementById('copy-whole-rubric-btn').addEventListener('click', () => copyText(combinedBlock(item), `已复制 NO. ${item.index} 的整条字段包`));
-      document.getElementById('copy-title-and-desc-btn').addEventListener('click', () => {
-        const parts = [];
-        if (getFieldValue(item, 'title').trim()) parts.push(`评分点：${getFieldValue(item, 'title')}`);
-        if (getFieldValue(item, 'description').trim()) parts.push(`说明：${getFieldValue(item, 'description')}`);
-        copyText(parts.join('\n\n'), `已复制 NO. ${item.index} 的「评分点 + 说明」`);
-      });
+      const summaryBtn = document.getElementById('copy-title-and-desc-btn');
+      if (summaryBtn) {
+        summaryBtn.addEventListener('click', () => {
+          copyText(summaryParts.join('\n\n'), `已复制 NO. ${item.index} 的常用摘要`);
+        });
+      }
 
       workflowEl.querySelectorAll('[data-copy-field]').forEach(btn => {
         btn.addEventListener('click', () => copyField(Number(btn.dataset.copyField), false));
