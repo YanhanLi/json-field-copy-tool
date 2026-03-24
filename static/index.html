@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rubric 字段复制助手</title>
+  <title>JSON 字段复制工具</title>
   <style>
     :root {
       --bg: #f6f2ea;
@@ -444,8 +444,8 @@
   <div class="wrap">
     <section class="hero">
       <div class="card hero-main">
-        <h1>Rubric 字段复制助手</h1>
-        <p class="sub">这版优先服务右侧分屏录入：先看到 Rubrics 的分字段填写，再看到评分点列表。字段顺序仍按表单真实顺序：评分点、类型、得分、来源、引用、说明。</p>
+        <h1>JSON 字段复制工具</h1>
+        <p class="sub">这是一款面向表单录入和内容回填的 JSON 字段复制工具。支持把结构化 JSON 记录拆成分字段内容，按顺序逐个复制，也适合右侧分屏快速录入。</p>
       </div>
       <div class="card hero-side">
         <div>
@@ -461,7 +461,7 @@
 
     <section class="card toolbar">
       <select id="file-select">
-        <option value="">选择一个 rubric JSON</option>
+        <option value="">选择一个 JSON 文件</option>
       </select>
       <input id="search-input" type="text" placeholder="按评分点 / 类型 / NO. 搜索" />
       <button id="copy-all-fields-btn" disabled>复制整条</button>
@@ -470,16 +470,16 @@
 
     <section class="layout">
       <div class="card panel layout-side">
-        <h2>评分点列表</h2>
+        <h2>记录列表</h2>
         <div id="list" class="list">
-          <div class="empty">先选择一个 rubric JSON，我会把每条评分点切成表单字段。</div>
+          <div class="empty">先选择一个 JSON 文件，我会把每条记录切成表单字段。</div>
         </div>
       </div>
 
       <div class="card panel layout-main">
-        <h2>Rubrics 分字段填写</h2>
+        <h2>JSON 分字段填写</h2>
         <div id="workflow" class="workflow">
-          <div class="empty">先选中左侧一条 rubric，这里就会出现按表单顺序排好的字段。</div>
+          <div class="empty">先选中左侧一条记录，这里就会出现按表单顺序排好的字段。</div>
         </div>
         <div id="status" class="status"></div>
       </div>
@@ -686,7 +686,7 @@
     function renderWorkflow() {
       const item = rubricItems[activeRubricIndex];
       if (!item) {
-        workflowEl.innerHTML = '<div class="empty">先选中左侧一条 rubric，这里就会出现按表单顺序排好的字段。</div>';
+        workflowEl.innerHTML = '<div class="empty">先选中左侧一条记录，这里就会出现按表单顺序排好的字段。</div>';
         currentRubricEl.textContent = 'NO. -';
         copyAllFieldsBtn.disabled = true;
         return;
@@ -697,7 +697,7 @@
 
       const fieldsToRender = visibleFields(item);
       if (!fieldsToRender.length) {
-        workflowEl.innerHTML = '<div class="empty">这条 rubric 目前没有可显示字段。</div>';
+        workflowEl.innerHTML = '<div class="empty">这条记录目前没有可显示字段。</div>';
         currentRubricEl.textContent = `NO. ${item.index}`;
         copyAllFieldsBtn.disabled = false;
         return;
@@ -718,15 +718,15 @@
         <div class="navigator">
           <button class="ghost" id="prev-field-btn">上一步</button>
           <button class="ghost" id="next-field-btn">下一步</button>
-          <button class="secondary" id="prev-rubric-btn">上一条 Rubric</button>
-          <button class="secondary" id="next-rubric-btn">下一条 Rubric</button>
+          <button class="secondary" id="prev-rubric-btn">上一条记录</button>
+          <button class="secondary" id="next-rubric-btn">下一条记录</button>
           <button id="copy-current-btn">复制当前字段</button>
           <button id="copy-advance-btn">复制并前进</button>
         </div>
 
         <div class="hint-card">
           <strong>更顺手的填法</strong>
-          <p>先点一次“复制当前字段”，到表单里粘贴；接着回来点“复制并前进”，就会自动跳到下一个字段。这样一条 rubric 基本只需要顺着点下去，不用再自己判断复制顺序。</p>
+          <p>先点一次“复制当前字段”，到表单里粘贴；接着回来点“复制并前进”，就会自动跳到下一个字段。这样一条记录基本只需要顺着点下去，不用再自己判断复制顺序。</p>
         </div>
 
         <div class="field-grid">
@@ -790,7 +790,7 @@
       const res = await fetch('/api/files');
       const payload = await res.json();
       const current = fileSelect.value;
-      fileSelect.innerHTML = '<option value="">选择一个 rubric JSON</option>';
+      fileSelect.innerHTML = '<option value="">选择一个 JSON 文件</option>';
       payload.files.forEach(file => {
         const option = document.createElement('option');
         option.value = file.path;
@@ -813,8 +813,8 @@
         currentFileEl.textContent = '未选择';
         currentRubricEl.textContent = 'NO. -';
         copyAllFieldsBtn.disabled = true;
-        listEl.innerHTML = '<div class="empty">先选择一个 rubric JSON，我会把每条评分点切成表单字段。</div>';
-        workflowEl.innerHTML = '<div class="empty">先选中左侧一条 rubric，这里就会出现按表单顺序排好的字段。</div>';
+        listEl.innerHTML = '<div class="empty">先选择一个 JSON 文件，我会把每条记录切成表单字段。</div>';
+        workflowEl.innerHTML = '<div class="empty">先选中左侧一条记录，这里就会出现按表单顺序排好的字段。</div>';
         statusEl.textContent = '';
         return;
       }

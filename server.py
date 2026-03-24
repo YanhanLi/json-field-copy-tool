@@ -172,9 +172,9 @@ def create_server() -> tuple[ThreadingHTTPServer, int]:
 
 
 if __name__ == "__main__":
-    print(f"Scanning rubric JSON files under: {ROOT}")
+    print(f"Scanning JSON files under: {ROOT}")
     server, actual_port = create_server()
-    print(f"Rubric Copy Tool running at http://{HOST}:{actual_port}")
+    print(f"JSON Field Copy Tool running at http://{HOST}:{actual_port}")
     if actual_port != PORT:
         print(f"Port {PORT} already in use, switched to http://{HOST}:{actual_port}")
     try:
