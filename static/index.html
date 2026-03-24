@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rubric 字段复制助手</title>
+  <style>
+    :root {
+      --bg: #f6f2ea;
+      --panel: #fffdf9;
+      --ink: #21201c;
+      --muted: #6f675c;
+      --line: #dbd2c5;
+      --accent: #0e6b57;
+      --accent-soft: #e5f1ed;
+      --accent-2: #d95f43;
+      --accent-2-soft: #f6e3dc;
+      --soft: #f1e7da;
+      --shadow: 0 12px 32px rgba(58, 45, 25, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(217, 95, 67, 0.10), transparent 28%),
+        radial-gradient(circle at top right, rgba(14, 107, 87, 0.12), transparent 24%),
+        linear-gradient(180deg, #fbf8f3 0%, var(--bg) 100%);
+      color: var(--ink);
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 20px 14px 32px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: rgba(255, 253, 249, 0.9);
+      border: 1px solid rgba(219, 210, 197, 0.8);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-main {
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 34px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .hero-side {
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+      background: linear-gradient(145deg, rgba(14, 107, 87, 0.08), rgba(217, 95, 67, 0.08));
+    }
+
+    .stat-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr auto auto;
+      gap: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    select, input, button, textarea {
+      font: inherit;
+    }
+
+    select, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+    }
+
+    button.secondary {
+      background: #efe6d9;
+      color: var(--ink);
+    }
+
+    button.ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.7fr) minmax(420px, 1.3fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+
+    .layout-main {
+      order: 2;
+    }
+
+    .layout-side {
+      order: 1;
+    }
+
+    .panel {
+      padding: 12px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 76vh;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    .item.active {
+      border-color: rgba(14, 107, 87, 0.45);
+      box-shadow: 0 10px 24px rgba(14, 107, 87, 0.09);
+      transform: translateY(-1px);
+    }
+
+    .item-top {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: #7d4c28;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .tag.active-tag {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .item h3 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .item-actions button {
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 32px 20px;
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.6);
+    }
+
+    .workflow {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .workflow-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .workflow-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    .workflow-sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .progress-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .navigator {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hint-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, rgba(241, 231, 218, 0.65), rgba(255,255,255,0.9));
+    }
+
+    .hint-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .hint-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .field-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .field-card.active {
+      border-color: rgba(217, 95, 67, 0.55);
+      box-shadow: 0 10px 24px rgba(217, 95, 67, 0.10);
+      background: linear-gradient(180deg, rgba(246, 227, 220, 0.35), #fff);
+    }
+
+    .field-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .field-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .field-no {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #efe6d9;
+      color: #6a4a2d;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .field-card.active .field-no {
+      background: var(--accent-2-soft);
+      color: var(--accent-2);
+    }
+
+    .field-label {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .field-value {
+      width: 100%;
+      min-height: 58px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fbfaf7;
+      line-height: 1.45;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .field-card[data-field-key="type"] .field-value,
+    .field-card[data-field-key="weight"] .field-value {
+      min-height: 44px;
+    }
+
+    .field-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .field-actions button {
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .full-copy {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .status {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    @media (max-width: 1280px) {
+      .hero,
+      .toolbar,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .layout-main {
+        order: 1;
+      }
+
+      .layout-side {
+        order: 2;
+      }
+
+      .list {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="card hero-main">
+        <h1>Rubric 字段复制助手</h1>
+        <p class="sub">这版优先服务右侧分屏录入：先看到 Rubrics 的分字段填写，再看到评分点列表。字段顺序仍按表单真实顺序：评分点、类型、得分、来源、引用、说明。</p>
+      </div>
+      <div class="card hero-side">
+        <div>
+          <div class="stat-label">当前文件</div>
+          <div id="current-file" class="stat-value">未选择</div>
+        </div>
+        <div>
+          <div class="stat-label">当前评分点</div>
+          <div id="current-rubric" class="stat-value">NO. -</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card toolbar">
+      <select id="file-select">
+        <option value="">选择一个 rubric JSON</option>
+      </select>
+      <input id="search-input" type="text" placeholder="按评分点 / 类型 / NO. 搜索" />
+      <button id="copy-all-fields-btn" disabled>复制整条</button>
+      <button id="reload-btn" class="secondary">刷新列表</button>
+    </section>
+
+    <section class="layout">
+      <div class="card panel layout-side">
+        <h2>评分点列表</h2>
+        <div id="list" class="list">
+          <div class="empty">先选择一个 rubric JSON，我会把每条评分点切成表单字段。</div>
+        </div>
+      </div>
+
+      <div class="card panel layout-main">
+        <h2>Rubrics 分字段填写</h2>
+        <div id="workflow" class="workflow">
+          <div class="empty">先选中左侧一条 rubric，这里就会出现按表单顺序排好的字段。</div>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const FIELD_ORDER = [
+      { key: 'title', label: '评分点' },
+      { key: 'type', label: '类型' },
+      { key: 'weight', label: '得分' },
+      { key: 'source', label: '来源' },
+      { key: 'reference', label: '引用' },
+      { key: 'description', label: '说明' },
+    ];
+
+    const fileSelect = document.getElementById('file-select');
+    const searchInput = document.getElementById('search-input');
+    const copyAllFieldsBtn = document.getElementById('copy-all-fields-btn');
+    const reloadBtn = document.getElementById('reload-btn');
+    const listEl = document.getElementById('list');
+    const workflowEl = document.getElementById('workflow');
+    const statusEl = document.getElementById('status');
+    const currentFileEl = document.getElementById('current-file');
+    const currentRubricEl = document.getElementById('current-rubric');
+
+    let rubricItems = [];
+    let activeRubricIndex = -1;
+    let activeFieldIndex = 0;
+
+    function selectFieldTextarea(fieldIndex) {
+      const textarea = document.querySelector(`.field-card[data-field-order="${fieldIndex}"] .field-value`);
+      if (!textarea) return;
+      textarea.focus();
+      textarea.select();
+    }
+
+    async function copyText(text, message, fallbackFieldIndex = null) {
+      try {
+        await navigator.clipboard.writeText(text || '');
+        statusEl.textContent = message;
+      } catch (err) {
+        statusEl.textContent = '系统剪贴板写入失败，已自动选中文本，你可以直接 Cmd+C。';
+        if (fallbackFieldIndex !== null) {
+          selectFieldTextarea(fallbackFieldIndex);
+        }
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function getFieldValue(item, key) {
+      return String(item?.[key] ?? '');
+    }
+
+    function visibleFields(item) {
+      return FIELD_ORDER.filter(field => getFieldValue(item, field.key).trim() !== '');
+    }
+
+    function combinedBlock(item) {
+      return visibleFields(item)
+        .map(field => `${field.label}：${getFieldValue(item, field.key)}`)
+        .join('\n\n');
+    }
+
+    function setActiveRubric(index, fieldIndex = 0) {
+      activeRubricIndex = index;
+      activeFieldIndex = Math.max(0, Math.min(fieldIndex, FIELD_ORDER.length - 1));
+      renderList();
+      renderWorkflow();
+    }
+
+    function findVisibleIndices() {
+      const keyword = searchInput.value.trim().toLowerCase();
+      return rubricItems
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => {
+          if (!keyword) return true;
+          return [item.index, item.title, item.type, item.description, item.source]
+            .join(' ')
+            .toLowerCase()
+            .includes(keyword);
+        });
+    }
+
+    function renderList() {
+      const visible = findVisibleIndices();
+      if (!visible.length) {
+        listEl.innerHTML = '<div class="empty">没有匹配项，换个关键词试试。</div>';
+        return;
+      }
+
+      listEl.innerHTML = visible.map(({ item, index }) => `
+        <article class="item ${index === activeRubricIndex ? 'active' : ''}">
+          <div class="item-top">
+            <span class="tag ${index === activeRubricIndex ? 'active-tag' : ''}">NO. ${escapeHtml(item.index)}</span>
+            ${getFieldValue(item, 'type').trim() ? `<span class="tag">${escapeHtml(item.type)}</span>` : ''}
+          </div>
+          <h3>${escapeHtml(item.title || '未填写评分点')}</h3>
+          <div class="meta">
+            ${getFieldValue(item, 'weight').trim() ? `<div>得分：${escapeHtml(item.weight)}</div>` : ''}
+            <div>${item.isDeductionPoints === 'TRUE' ? '扣分项' : '正常项'}</div>
+          </div>
+          <div class="item-actions">
+            <button data-open-index="${index}">打开字段填写</button>
+            <button class="secondary" data-copy-index="${index}">复制整条</button>
+          </div>
+        </article>
+      `).join('');
+
+      listEl.querySelectorAll('[data-open-index]').forEach(btn => {
+        btn.addEventListener('click', () => setActiveRubric(Number(btn.dataset.openIndex), 0));
+      });
+
+      listEl.querySelectorAll('[data-copy-index]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = rubricItems[Number(btn.dataset.copyIndex)];
+          if (item) copyText(combinedBlock(item), `已复制 NO. ${item.index} 的整条字段内容`);
+        });
+      });
+    }
+
+    function focusFieldCard() {
+      const target = document.querySelector(`.field-card[data-field-order="${activeFieldIndex}"]`);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function copyField(fieldIndex, advance = false) {
+      const item = rubricItems[activeRubricIndex];
+      if (!item) return;
+      const fieldsToRender = visibleFields(item);
+      const field = fieldsToRender[fieldIndex];
+      if (!field) return;
+      activeFieldIndex = fieldIndex;
+      renderWorkflow();
+      const value = getFieldValue(item, field.key);
+      await copyText(value, `已复制 NO. ${item.index} 的「${field.label}」`, fieldIndex);
+      if (advance) {
+        moveNext();
+      }
+    }
+
+    function moveField(delta) {
+      const item = rubricItems[activeRubricIndex];
+      const fieldsToRender = item ? visibleFields(item) : [];
+      const next = activeFieldIndex + delta;
+      if (next < 0 || next >= fieldsToRender.length) return;
+      activeFieldIndex = next;
+      renderWorkflow();
+      focusFieldCard();
+    }
+
+    function moveRubric(delta) {
+      if (!rubricItems.length) return;
+      const visible = findVisibleIndices().map(entry => entry.index);
+      if (!visible.length) return;
+      const pos = visible.indexOf(activeRubricIndex);
+      const currentPos = pos === -1 ? 0 : pos;
+      const nextPos = currentPos + delta;
+      if (nextPos < 0 || nextPos >= visible.length) return;
+      setActiveRubric(visible[nextPos], 0);
+    }
+
+    function moveNext() {
+      if (activeRubricIndex === -1) return;
+      const item = rubricItems[activeRubricIndex];
+      const fieldsToRender = item ? visibleFields(item) : [];
+      if (activeFieldIndex < fieldsToRender.length - 1) {
+        activeFieldIndex += 1;
+        renderWorkflow();
+        focusFieldCard();
+        return;
+      }
+      const visible = findVisibleIndices().map(entry => entry.index);
+      const pos = visible.indexOf(activeRubricIndex);
+      if (pos !== -1 && pos < visible.length - 1) {
+        setActiveRubric(visible[pos + 1], 0);
+      }
+    }
+
+    function movePrev() {
+      if (activeRubricIndex === -1) return;
+      if (activeFieldIndex > 0) {
+        activeFieldIndex -= 1;
+        renderWorkflow();
+        focusFieldCard();
+        return;
+      }
+      const visible = findVisibleIndices().map(entry => entry.index);
+      const pos = visible.indexOf(activeRubricIndex);
+      if (pos > 0) {
+        const prevItem = rubricItems[visible[pos - 1]];
+        setActiveRubric(visible[pos - 1], Math.max(visibleFields(prevItem).length - 1, 0));
+      }
+    }
+
+    function renderWorkflow() {
+      const item = rubricItems[activeRubricIndex];
+      if (!item) {
+        workflowEl.innerHTML = '<div class="empty">先选中左侧一条 rubric，这里就会出现按表单顺序排好的字段。</div>';
+        currentRubricEl.textContent = 'NO. -';
+        copyAllFieldsBtn.disabled = true;
+        return;
+      }
+
+      currentRubricEl.textContent = `NO. ${item.index}`;
+      copyAllFieldsBtn.disabled = false;
+
+      const fieldsToRender = visibleFields(item);
+      if (!fieldsToRender.length) {
+        workflowEl.innerHTML = '<div class="empty">这条 rubric 目前没有可显示字段。</div>';
+        currentRubricEl.textContent = `NO. ${item.index}`;
+        copyAllFieldsBtn.disabled = false;
+        return;
+      }
+      if (activeFieldIndex >= fieldsToRender.length) {
+        activeFieldIndex = fieldsToRender.length - 1;
+      }
+      const currentField = fieldsToRender[activeFieldIndex];
+      workflowEl.innerHTML = `
+        <div class="workflow-header">
+          <div>
+            <h3 class="workflow-title">NO. ${escapeHtml(item.index)}：${escapeHtml(item.title || '未填写评分点')}</h3>
+            <p class="workflow-sub">建议操作顺序和表单一致：先填评分点，再填类型、得分、来源、引用、说明。你可以只复制当前字段，也可以一路“复制并前进”。</p>
+          </div>
+          <div class="progress-pill">当前字段：${escapeHtml(currentField.label)}（${activeFieldIndex + 1}/${fieldsToRender.length}）</div>
+        </div>
+
+        <div class="navigator">
+          <button class="ghost" id="prev-field-btn">上一步</button>
+          <button class="ghost" id="next-field-btn">下一步</button>
+          <button class="secondary" id="prev-rubric-btn">上一条 Rubric</button>
+          <button class="secondary" id="next-rubric-btn">下一条 Rubric</button>
+          <button id="copy-current-btn">复制当前字段</button>
+          <button id="copy-advance-btn">复制并前进</button>
+        </div>
+
+        <div class="hint-card">
+          <strong>更顺手的填法</strong>
+          <p>先点一次“复制当前字段”，到表单里粘贴；接着回来点“复制并前进”，就会自动跳到下一个字段。这样一条 rubric 基本只需要顺着点下去，不用再自己判断复制顺序。</p>
+        </div>
+
+        <div class="field-grid">
+          ${fieldsToRender.map((field, index) => `
+            <section class="field-card ${index === activeFieldIndex ? 'active' : ''}" data-field-order="${index}" data-field-key="${escapeHtml(field.key)}">
+              <div class="field-head">
+                <div class="field-left">
+                  <span class="field-no">${index + 1}</span>
+                  <span class="field-label">${escapeHtml(field.label)}</span>
+                </div>
+                <span class="tag ${index === activeFieldIndex ? 'active-tag' : ''}">${index === activeFieldIndex ? '当前要填' : '待填'}</span>
+              </div>
+              <textarea class="field-value" readonly>${escapeHtml(getFieldValue(item, field.key))}</textarea>
+              <div class="field-actions">
+                <button data-copy-field="${index}">复制这个字段</button>
+                <button class="secondary" data-copy-advance-field="${index}">复制并跳到下一字段</button>
+                <button class="ghost" data-set-active-field="${index}">设为当前字段</button>
+              </div>
+            </section>
+          `).join('')}
+        </div>
+
+        <div class="full-copy">
+          <button class="secondary" id="copy-whole-rubric-btn">复制整条字段包</button>
+          <button class="ghost" id="copy-title-and-desc-btn">只复制评分点 + 说明</button>
+        </div>
+      `;
+
+      document.getElementById('prev-field-btn').addEventListener('click', movePrev);
+      document.getElementById('next-field-btn').addEventListener('click', moveNext);
+      document.getElementById('prev-rubric-btn').addEventListener('click', () => moveRubric(-1));
+      document.getElementById('next-rubric-btn').addEventListener('click', () => moveRubric(1));
+      document.getElementById('copy-current-btn').addEventListener('click', () => copyField(activeFieldIndex, false));
+      document.getElementById('copy-advance-btn').addEventListener('click', () => copyField(activeFieldIndex, true));
+      document.getElementById('copy-whole-rubric-btn').addEventListener('click', () => copyText(combinedBlock(item), `已复制 NO. ${item.index} 的整条字段包`));
+      document.getElementById('copy-title-and-desc-btn').addEventListener('click', () => {
+        const parts = [];
+        if (getFieldValue(item, 'title').trim()) parts.push(`评分点：${getFieldValue(item, 'title')}`);
+        if (getFieldValue(item, 'description').trim()) parts.push(`说明：${getFieldValue(item, 'description')}`);
+        copyText(parts.join('\n\n'), `已复制 NO. ${item.index} 的「评分点 + 说明」`);
+      });
+
+      workflowEl.querySelectorAll('[data-copy-field]').forEach(btn => {
+        btn.addEventListener('click', () => copyField(Number(btn.dataset.copyField), false));
+      });
+
+      workflowEl.querySelectorAll('[data-copy-advance-field]').forEach(btn => {
+        btn.addEventListener('click', () => copyField(Number(btn.dataset.copyAdvanceField), true));
+      });
+
+      workflowEl.querySelectorAll('[data-set-active-field]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeFieldIndex = Number(btn.dataset.setActiveField);
+          renderWorkflow();
+          focusFieldCard();
+        });
+      });
+    }
+
+    async function loadFiles() {
+      const res = await fetch('/api/files');
+      const payload = await res.json();
+      const current = fileSelect.value;
+      fileSelect.innerHTML = '<option value="">选择一个 rubric JSON</option>';
+      payload.files.forEach(file => {
+        const option = document.createElement('option');
+        option.value = file.path;
+        option.textContent = file.count == null
+          ? `${file.path}`
+          : `${file.path} (${file.count} 条)`;
+        if (file.path === current) option.selected = true;
+        fileSelect.appendChild(option);
+      });
+      if (current && [...fileSelect.options].some(opt => opt.value === current)) {
+        await loadRubric(current);
+      }
+    }
+
+    async function loadRubric(path) {
+      if (!path) {
+        rubricItems = [];
+        activeRubricIndex = -1;
+        activeFieldIndex = 0;
+        currentFileEl.textContent = '未选择';
+        currentRubricEl.textContent = 'NO. -';
+        copyAllFieldsBtn.disabled = true;
+        listEl.innerHTML = '<div class="empty">先选择一个 rubric JSON，我会把每条评分点切成表单字段。</div>';
+        workflowEl.innerHTML = '<div class="empty">先选中左侧一条 rubric，这里就会出现按表单顺序排好的字段。</div>';
+        statusEl.textContent = '';
+        return;
+      }
+
+      statusEl.textContent = '正在载入...';
+      const res = await fetch(`/api/rubric?path=${encodeURIComponent(path)}`);
+      const payload = await res.json();
+      if (!res.ok) {
+        rubricItems = [];
+        activeRubricIndex = -1;
+        copyAllFieldsBtn.disabled = true;
+        listEl.innerHTML = `<div class="empty">${escapeHtml(payload.error || '读取失败')}</div>`;
+        workflowEl.innerHTML = '<div class="empty">读取失败，请换一个文件再试。</div>';
+        statusEl.textContent = '读取失败';
+        return;
+      }
+
+      rubricItems = payload.items || [];
+      currentFileEl.textContent = path.split('/').slice(-1)[0];
+      if (rubricItems.length) {
+        activeRubricIndex = 0;
+        activeFieldIndex = 0;
+      } else {
+        activeRubricIndex = -1;
+        activeFieldIndex = 0;
+      }
+      renderList();
+      renderWorkflow();
+      statusEl.textContent = '已生成逐字段复制视图。';
+      if (activeRubricIndex !== -1) {
+        selectFieldTextarea(activeFieldIndex);
+      }
+    }
+
+    fileSelect.addEventListener('change', () => loadRubric(fileSelect.value));
+    searchInput.addEventListener('input', () => {
+      const visibleIndices = findVisibleIndices().map(entry => entry.index);
+      if (!visibleIndices.length) {
+        activeRubricIndex = -1;
+        activeFieldIndex = 0;
+        renderList();
+        renderWorkflow();
+        return;
+      }
+      if (!visibleIndices.includes(activeRubricIndex)) {
+        setActiveRubric(visibleIndices[0], 0);
+        return;
+      }
+      renderList();
+      renderWorkflow();
+    });
+    reloadBtn.addEventListener('click', loadFiles);
+    copyAllFieldsBtn.addEventListener('click', () => {
+      const item = rubricItems[activeRubricIndex];
+      if (!item) return;
+      copyText(combinedBlock(item), `已复制 NO. ${item.index} 的整条字段内容`);
+    });
+
+    document.addEventListener('keydown', event => {
+      if (activeRubricIndex === -1) return;
+      if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveNext();
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        movePrev();
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        copyField(activeFieldIndex, true);
+      }
+    });
+
+    loadFiles();
+  </script>
+</body>
+</html>
